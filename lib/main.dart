@@ -51,7 +51,7 @@ class _NfcAppState extends State<NfcApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("NFC 門禁助手 (跨平台)")),
+      appBar: AppBar(title: Text("NFCApp")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

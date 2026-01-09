@@ -1,48 +1,43 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'dart:io';
 
-void main() => runApp(MaterialApp(home: NfcApp()));
+void main() => runApp(MaterialApp(home: NfcMasterApp()));
 
-class NfcApp extends StatefulWidget {
+class NfcMasterApp extends StatefulWidget {
   @override
-  _NfcAppState createState() => _NfcAppState();
+  _NfcMasterAppState createState() => _NfcMasterAppState();
 }
 
-class _NfcAppState extends State<NfcApp> {
+class _NfcMasterAppState extends State<NfcMasterApp> {
   String _status = "等待操作";
-  String _savedUid = "";
-  static const platform = MethodChannel('com.example.nfc/hce');
+  String _lastReadUid = "";
+  static const platform = MethodChannel('com.example.nfc/action');
 
-  Future<void> _readTag() async {
+  Future<void> _readNfc() async {
     try {
-      setState(() => _status = "正在啟動 NFC...");
-      var tag = await FlutterNfcKit.poll(
-        timeout: Duration(seconds: 15),
-        iosAlertMessage: "請靠近磁扣",
-      );
+      setState(() => _status = "請靠近磁扣...");
+      var tag = await FlutterNfcKit.poll(timeout: Duration(seconds: 15));
       setState(() {
-        _savedUid = tag.id;
-        _status = "讀取成功！\nID: ${tag.id}";
+        _lastReadUid = tag.id;
+        _status = "讀取成功！ID: ${tag.id}";
       });
-    } catch (e) {
-      setState(() => _status = "讀取失敗: $e");
-    } finally {
       await FlutterNfcKit.finish();
+    } catch (e) {
+      setState(() => _status = "讀取錯誤: $e");
     }
   }
 
-  // --- 功能 2：啟動模擬 (僅 Android 可用) ---
   Future<void> _startEmulation() async {
-    if (_savedUid.isEmpty) {
-      setState(() => _status = "請先讀取一個 ID");
+    if (_lastReadUid.isEmpty) {
+      setState(() => _status = "請先讀取一個卡片 ID");
       return;
     }
     try {
-      // 呼叫 Android 原生 Kotlin 程式碼
-      final String result = await platform.invokeMethod('startHce', {"uid": _savedUid});
-      setState(() => _status = "Android 模擬中...\n手機現在是磁扣了\nID: $_savedUid");
+      setState(() => _status = "正在啟動模擬模式...");
+      final String result = await platform.invokeMethod('startEmulation', {"uid": _lastReadUid});
+      setState(() => _status = "模擬中：$result");
     } on PlatformException catch (e) {
       setState(() => _status = "模擬失敗: ${e.message}");
     }
@@ -51,29 +46,24 @@ class _NfcAppState extends State<NfcApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("NFCApp")),
+      appBar: AppBar(title: Text("NFC 門禁全功能")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_status, textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
-            SizedBox(height: 30),
-
-            ElevatedButton(onPressed: _readTag, child: Text("讀取磁扣 ID")),
-
-            if (Platform.isAndroid) ...[
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _startEmulation,
-                child: Text("Android 專用：模擬此磁扣"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-              ),
-            ],
-
-            if (Platform.isIOS) ...[
-              SizedBox(height: 20),
-              Text("(iOS 僅支援讀取功能)", style: TextStyle(color: Colors.grey)),
-            ]
+            Container(
+              padding: EdgeInsets.all(20),
+              color: Colors.grey[200],
+              child: Text(_status, textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
+            ),
+            SizedBox(height: 50),
+            ElevatedButton(onPressed: _readNfc, child: Text("1. 讀取門禁卡")),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _startEmulation,
+              child: Text("2. 手機變成門禁卡"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            ),
           ],
         ),
       ),

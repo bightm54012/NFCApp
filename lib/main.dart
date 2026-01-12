@@ -17,29 +17,29 @@ class _NfcMasterAppState extends State<NfcMasterApp> {
 
   Future<void> _readNfc() async {
     try {
-      setState(() => _status = "請靠近磁扣...");
-      var tag = await FlutterNfcKit.poll(timeout: Duration(seconds: 15));
+      NFCTag tag = await FlutterNfcKit.poll();
       setState(() {
         _lastReadUid = tag.id;
-        _status = "讀取成功！ID: ${tag.id}";
+        _status = "讀取成功：$_lastReadUid";
       });
       await FlutterNfcKit.finish();
     } catch (e) {
-      setState(() => _status = "讀取錯誤: $e");
+      setState(() => _status = "讀取失敗: $e");
     }
   }
 
   Future<void> _startEmulation() async {
     if (_lastReadUid.isEmpty) {
-      setState(() => _status = "請先讀取一個卡片 ID");
+      setState(() => _status = "請先讀取一張卡片");
       return;
     }
     try {
-      setState(() => _status = "正在啟動模擬模式...");
-      final String result = await platform.invokeMethod('startEmulation', {"uid": _lastReadUid});
-      setState(() => _status = "模擬中：$result");
+      final String result = await platform.invokeMethod('startEmulation', {
+        "uid": _lastReadUid
+      });
+      setState(() => _status = result);
     } on PlatformException catch (e) {
-      setState(() => _status = "模擬失敗: ${e.message}");
+      setState(() => _status = "模擬啟動失敗: ${e.message}");
     }
   }
 

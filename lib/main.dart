@@ -1,69 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
-import 'dart:io';
 
-void main() => runApp(MaterialApp(home: NfcMasterApp()));
+void main() => runApp(const MaterialApp(home: NfcEmulatorApp()));
 
-class NfcMasterApp extends StatefulWidget {
+class NfcEmulatorApp extends StatefulWidget {
+  const NfcEmulatorApp({super.key});
   @override
-  _NfcMasterAppState createState() => _NfcMasterAppState();
+  _NfcEmulatorAppState createState() => _NfcEmulatorAppState();
 }
 
-class _NfcMasterAppState extends State<NfcMasterApp> {
-  String _status = "等待操作";
-  String _lastReadUid = "";
+class _NfcEmulatorAppState extends State<NfcEmulatorApp> {
   static const platform = MethodChannel('com.example.nfc/action');
+  String _status = "等待操作...";
+  String _lastReadUid = "";
 
   Future<void> _readNfc() async {
     try {
-      NFCTag tag = await FlutterNfcKit.poll();
+      setState(() => _status = "請靠近實體卡片...");
+      var tag = await FlutterNfcKit.poll();
       setState(() {
         _lastReadUid = tag.id;
-        _status = "讀取成功：$_lastReadUid";
+        _status = "讀取成功！ID: $_lastReadUid";
       });
       await FlutterNfcKit.finish();
     } catch (e) {
-      setState(() => _status = "讀取失敗: $e");
+      setState(() => _status = "讀取出錯: $e");
     }
   }
 
   Future<void> _startEmulation() async {
     if (_lastReadUid.isEmpty) {
-      setState(() => _status = "請先讀取一張卡片");
+      setState(() => _status = "錯誤：請先讀取一個卡片 ID");
       return;
     }
     try {
-      final String result = await platform.invokeMethod('startEmulation', {
-        "uid": _lastReadUid
-      });
+      final String result = await platform.invokeMethod('startEmulation', {"uid": _lastReadUid});
       setState(() => _status = result);
     } on PlatformException catch (e) {
-      setState(() => _status = "模擬啟動失敗: ${e.message}");
+      setState(() => _status = "模擬失敗: ${e.message}");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("NFC 門禁全功能")),
+      appBar: AppBar(title: const Text("NFC 門禁模擬器")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: EdgeInsets.all(20),
-              color: Colors.grey[200],
-              child: Text(_status, textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
-            ),
-            SizedBox(height: 50),
-            ElevatedButton(onPressed: _readNfc, child: Text("1. 讀取門禁卡")),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _startEmulation,
-              child: Text("2. 手機變成門禁卡"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            ),
+            Text(_status, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 30),
+            ElevatedButton(onPressed: _readNfc, child: const Text("1. 讀取門禁卡")),
+            const SizedBox(height: 15),
+            ElevatedButton(onPressed: _startEmulation, child: const Text("2. 手機變成門禁卡")),
           ],
         ),
       ),

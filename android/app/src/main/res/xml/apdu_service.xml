@@ -3,8 +3,10 @@
     android:description="@string/nfc_description"
     android:requireDeviceUnlock="false">
 
-    <aid-group android:category="other"
-        android:description="@string/nfc_description">
+    <aid-group
+        android:description="@string/nfc_description"
+        android:category="other">
+        <aid-filter android:name="D2760000850101"/>
         <aid-filter android:name="F0010203040506"/>
     </aid-group>
 </host-apdu-service>
